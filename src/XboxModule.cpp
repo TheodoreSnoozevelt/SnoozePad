@@ -1,10 +1,11 @@
 #include "plugin.hpp"
 #include <windows.h>
-#include <xinput.h>
+#include "Gamepad.hpp"
 
 struct XboxModule : Module {
-	XINPUT_STATE state;
-	XINPUT_VIBRATION vibration;
+	GamepadState gamepadState;
+	Gamepad gamepad;
+	
 	
 	enum ParamIds {
 		NUM_PARAMS
@@ -41,57 +42,39 @@ struct XboxModule : Module {
 
 	XboxModule() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
-		ZeroMemory(&state, sizeof(XINPUT_STATE));
-		ZeroMemory(&vibration, sizeof(XINPUT_VIBRATION));
 	}
 
 	void process(const ProcessArgs& args) override {
-		if (XInputGetState(0, &state) == ERROR_SUCCESS) {
-			bool A_button_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_A) != 0);
-			bool B_button_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_B) != 0);
-			bool X_button_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_X) != 0);
-			bool Y_button_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_Y) != 0);
-			bool left_button_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0);
-			bool right_button_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0);
-			bool up_button_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0);
-			bool down_button_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0);
-			bool left_shoulder_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0);
-			bool right_shoulder_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0);
-			bool left_analog_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0);
-			bool right_analog_pressed = ((state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0);
-			outputs[A_BUTTON_OUTPUT].setVoltage(A_button_pressed ? 5.f : .0);
-			outputs[B_BUTTON_OUTPUT].setVoltage(B_button_pressed ? 5.f : .0);
-			outputs[X_BUTTON_OUTPUT].setVoltage(X_button_pressed ? 5.f : .0);
-			outputs[Y_BUTTON_OUTPUT].setVoltage(Y_button_pressed ? 5.f : .0);
-			outputs[DIGITAL_LEFT_OUTPUT].setVoltage(left_button_pressed ? 5.f : .0);
-			outputs[DIGITAL_RIGHT_OUTPUT].setVoltage(right_button_pressed ? 5.f : .0);
-			outputs[DIGITAL_UP_OUTPUT].setVoltage(up_button_pressed ? 5.f : .0);
-			outputs[DIGITAL_DOWN_OUTPUT].setVoltage(down_button_pressed ? 5.f : .0);
-			outputs[LEFT_SHOULDER_OUTPUT].setVoltage(left_shoulder_pressed ? 5.f : .0);
-			outputs[RIGHT_SHOULDER_OUTPUT].setVoltage(right_shoulder_pressed ? 5.f : .0);
-			outputs[LEFT_ANALOG_BUTTON_OUTPUT].setVoltage(left_analog_pressed ? 5.f : .0);
-			outputs[RIGHT_ANALOG_BUTTON_OUTPUT].setVoltage(right_analog_pressed ? 5.f : .0);
+		if (!gamepad.readGamepadState(&gamepadState))
+			return;
+		
+		outputs[A_BUTTON_OUTPUT].setVoltage(gamepadState.aButtonPressed ? 5.f : .0);
+		outputs[B_BUTTON_OUTPUT].setVoltage(gamepadState.bButtonPressed ? 5.f : .0);
+		outputs[X_BUTTON_OUTPUT].setVoltage(gamepadState.xButtonPressed ? 5.f : .0);
+		outputs[Y_BUTTON_OUTPUT].setVoltage(gamepadState.yButtonPressed ? 5.f : .0);
+		outputs[DIGITAL_LEFT_OUTPUT].setVoltage(gamepadState.leftPressed ? 5.f : .0);
+		outputs[DIGITAL_RIGHT_OUTPUT].setVoltage(gamepadState.rightPressed ? 5.f : .0);
+		outputs[DIGITAL_UP_OUTPUT].setVoltage(gamepadState.upPressed ? 5.f : .0);
+		outputs[DIGITAL_DOWN_OUTPUT].setVoltage(gamepadState.downPressed ? 5.f : .0);
+		outputs[LEFT_SHOULDER_OUTPUT].setVoltage(gamepadState.leftShoulderButtonPressed ? 5.f : .0);
+		outputs[RIGHT_SHOULDER_OUTPUT].setVoltage(gamepadState.rightShoulderButtonPressed ? 5.f : .0);
+		outputs[LEFT_ANALOG_BUTTON_OUTPUT].setVoltage(gamepadState.leftThumbPressed ? 5.f : .0);
+		outputs[RIGHT_ANALOG_BUTTON_OUTPUT].setVoltage(gamepadState.rightThumbPressed ? 5.f : .0);
 
-			float normLX = fmaxf(-1, (float) state.Gamepad.sThumbLX / 32767);
-			float normLY = fmaxf(-1, (float) state.Gamepad.sThumbLY / 32767);
-			float normRX = fmaxf(-1, (float) state.Gamepad.sThumbRX / 32767);
-			float normRY = fmaxf(-1, (float) state.Gamepad.sThumbRY / 32767);
-			outputs[LEFT_ANALOG_X_OUTPUT].setVoltage(normLX * 5.f);
-			outputs[LEFT_ANALOG_Y_OUTPUT].setVoltage(normLY * 5.f);
-			outputs[RIGHT_ANALOG_X_OUTPUT].setVoltage(normRX * 5.f);
-			outputs[RIGHT_ANALOG_Y_OUTPUT].setVoltage(normRY * 5.f);
+		outputs[LEFT_ANALOG_X_OUTPUT].setVoltage(gamepadState.leftThumbX * 5.f);
+		outputs[LEFT_ANALOG_Y_OUTPUT].setVoltage(gamepadState.leftThumbY * 5.f);
+		outputs[RIGHT_ANALOG_X_OUTPUT].setVoltage(gamepadState.rightThumbX * 5.f);
+		outputs[RIGHT_ANALOG_Y_OUTPUT].setVoltage(gamepadState.rightThumbY * 5.f);
 
-			float leftTrigger = (float) state.Gamepad.bLeftTrigger / 255;
-			float rightTrigger = (float) state.Gamepad.bRightTrigger / 255;
-			outputs[LEFT_TRIGGER_OUTPUT].setVoltage(leftTrigger * 5.f);
-			outputs[RIGHT_TRIGGER_OUTPUT].setVoltage(rightTrigger * 5.f);
+		outputs[LEFT_TRIGGER_OUTPUT].setVoltage(gamepadState.leftTrigger * 5.f);
+		outputs[RIGHT_TRIGGER_OUTPUT].setVoltage(gamepadState.rightTrigger * 5.f);
 
-			WORD leftVibration = abs(inputs[RUMBLE_LEFT_INPUT].getVoltage() / 5.f) * 65535;
-			WORD rightVibration = abs(inputs[RUMBLE_RIGHT_INPUT].getVoltage() / 5.f) * 65535;
-			vibration.wLeftMotorSpeed = leftVibration;
-			vibration.wRightMotorSpeed = rightVibration;
-			XInputSetState(0, &vibration);
-		}
+		/*WORD leftVibration = abs(inputs[RUMBLE_LEFT_INPUT].getVoltage() / 5.f) * 65535;
+		WORD rightVibration = abs(inputs[RUMBLE_RIGHT_INPUT].getVoltage() / 5.f) * 65535;
+		vibration.wLeftMotorSpeed = leftVibration;
+		vibration.wRightMotorSpeed = rightVibration;
+		XInputSetState(0, &vibration);*/
+		
 	}
 };
 
