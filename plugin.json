@@ -1,0 +1,23 @@
+{
+  "slug": "XboxModule",
+  "name": "XboxModule",
+  "version": "1.0.0",
+  "license": "MIT",
+  "brand": "Snoozevelt",
+  "author": "Theodore Snoozevelt",
+  "authorEmail": "",
+  "authorUrl": "",
+  "pluginUrl": "",
+  "manualUrl": "",
+  "sourceUrl": "",
+  "donateUrl": "",
+  "changelogUrl": "",
+  "modules": [
+    {
+      "slug": "XboxModule",
+      "name": "XboxModule",
+      "description": "",
+      "tags": []
+    }
+  ]
+}
