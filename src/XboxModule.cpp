@@ -5,7 +5,14 @@
 struct XboxModule : Module {
 	GamepadState gamepadState;
 	Gamepad gamepad;
+	float leftVibration;
+	float rightVibration;
 	
+	enum ProcessingState {
+		READ_CONTROLLER,
+		APPLY_VALUES,
+		SET_VIBRATION
+	} currentState = READ_CONTROLLER;
 	
 	enum ParamIds {
 		NUM_PARAMS
@@ -43,11 +50,12 @@ struct XboxModule : Module {
 	XboxModule() {
 		config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 	}
-
-	void process(const ProcessArgs& args) override {
-		if (!gamepad.readGamepadState(&gamepadState))
-			return;
-		
+	
+	bool readGamepadState() {
+		return gamepad.readGamepadState(&gamepadState);
+	}
+	
+	void applyVoltages() {
 		outputs[A_BUTTON_OUTPUT].setVoltage(gamepadState.aButtonPressed ? 5.f : .0);
 		outputs[B_BUTTON_OUTPUT].setVoltage(gamepadState.bButtonPressed ? 5.f : .0);
 		outputs[X_BUTTON_OUTPUT].setVoltage(gamepadState.xButtonPressed ? 5.f : .0);
@@ -69,12 +77,29 @@ struct XboxModule : Module {
 		outputs[LEFT_TRIGGER_OUTPUT].setVoltage(gamepadState.leftTrigger * 5.f);
 		outputs[RIGHT_TRIGGER_OUTPUT].setVoltage(gamepadState.rightTrigger * 5.f);
 
-		/*WORD leftVibration = abs(inputs[RUMBLE_LEFT_INPUT].getVoltage() / 5.f) * 65535;
-		WORD rightVibration = abs(inputs[RUMBLE_RIGHT_INPUT].getVoltage() / 5.f) * 65535;
-		vibration.wLeftMotorSpeed = leftVibration;
-		vibration.wRightMotorSpeed = rightVibration;
-		XInputSetState(0, &vibration);*/
-		
+		leftVibration = abs(inputs[RUMBLE_LEFT_INPUT].getVoltage() / 5.f);
+		rightVibration = abs(inputs[RUMBLE_RIGHT_INPUT].getVoltage() / 5.f);
+	}
+	
+	void setVibration() {
+		gamepad.setVibration(leftVibration, rightVibration);
+	}
+
+	void process(const ProcessArgs& args) override {
+		switch (currentState) {
+			case READ_CONTROLLER:
+				if (readGamepadState())
+					currentState = APPLY_VALUES;
+				break;
+			case APPLY_VALUES:
+				applyVoltages();
+				currentState = SET_VIBRATION;
+				break;
+			case SET_VIBRATION:
+				setVibration();
+				currentState = READ_CONTROLLER;
+				break;
+		}
 	}
 };
 

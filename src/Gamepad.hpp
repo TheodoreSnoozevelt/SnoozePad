@@ -58,4 +58,13 @@ class Gamepad {
 		st->rightTrigger = (float) state.Gamepad.bRightTrigger / 255;
 		return true;
 	}
+	
+	bool setVibration(float left, float right) {
+		
+		WORD leftVibration = left * 65535;
+		WORD rightVibration = right * 65535;
+		vibration.wLeftMotorSpeed = leftVibration;
+		vibration.wRightMotorSpeed = rightVibration;
+		return XInputSetState(0, &vibration) == ERROR_SUCCESS;
+	}
 };
