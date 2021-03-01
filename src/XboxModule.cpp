@@ -7,6 +7,7 @@ struct XboxModule : Module {
 	Gamepad gamepad;
 	float leftVibration;
 	float rightVibration;
+	dsp::ClockDivider cvDivider;
 	
 	enum ProcessingState {
 		READ_CONTROLLER,
@@ -86,20 +87,14 @@ struct XboxModule : Module {
 	}
 
 	void process(const ProcessArgs& args) override {
-		switch (currentState) {
-			case READ_CONTROLLER:
-				if (readGamepadState())
-					currentState = APPLY_VALUES;
-				break;
-			case APPLY_VALUES:
-				applyVoltages();
-				currentState = SET_VIBRATION;
-				break;
-			case SET_VIBRATION:
-				setVibration();
-				currentState = READ_CONTROLLER;
-				break;
-		}
+		if (!cvDivider.process()) 
+			return;
+			
+		if (!readGamepadState())
+			return;
+		
+		setVibration();
+		applyVoltages();
 	}
 };
 
